@@ -39,11 +39,11 @@ AS2MWidget::AS2MWidget(const QString & basename, int tv, int numView, QWidget *p
 // permet au main de savoir si les images ont été chargées correctement
 bool AS2MWidget::imagesLoaded() const
 {
-//    return this->imgMask.size() == AS2MWidget::nbImages &&
-//            this->imgMono.size() == AS2MWidget::nbImages;
+    return this->imgMask.size() == AS2MWidget::nbImages &&
+            this->imgMono.size() == AS2MWidget::nbImages;
 
 // renvoie vrai initialement sinon l'application se termine sans afficher la fenêtre
-    return true;
+//   return true;
 }
 
 // méthode pour charger une série d'images dans un QVector
