@@ -1,4 +1,4 @@
-﻿#include "as2mwidget.h"
+﻿#include "AS2MWidget.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QKeyEvent>
@@ -35,7 +35,7 @@ AS2MWidget::AS2MWidget(const QString & basename, int tv, int numView, QWidget *p
     }
     else
     {
-        QMessageBox::critical(NULL,"AS2MViewer","Erreur lors du chargement des images.");
+        QMessageBox::critical(nullptr,"AS2MViewer","Erreur lors du chargement des images.");
     }
 }
 
@@ -123,7 +123,8 @@ void AS2MWidget::paintImage(const QImage & img) const
 void AS2MWidget::paintMono() const
 {
 /// --- TODO : Dessin de l'image mono
-
+    auto& img = this->imgMono[0];
+    this->paintImage(img);
 }
 
 void AS2MWidget::paintStereo() const
@@ -168,7 +169,7 @@ void AS2MWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
 /// --- TODO - Dessin avec le type de rendu désiré
 
-    switch (this->numView)
+    switch (this->typeView)
     {
         case TypeView::MONO:
             this->paintMono();
@@ -184,9 +185,9 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 {
     switch ( event->key() )
     {
-    case Qt::Key_Escape:
-        this->close();
-        break;
+        case Qt::Key_Escape:
+            this->close();
+            break;
 
         /// --- TODO : changement du mode de rendu
 
