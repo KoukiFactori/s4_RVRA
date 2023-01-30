@@ -91,29 +91,42 @@ bool AS2MWidget::fillMono()
 void AS2MWidget::fillAnag()
 {
 /// --- TODO : Calculs des images anaglyphes
-    for (size_t i = 0; i < this->nbImages; i++)
+    for (size_t i = 0; i < this->nbImages - 1; i++)
     {
         auto leftImg = this->imgMono[i];
-        auto rightImg = this->imgMono[i + 1];
 
-        //naive iteration
+        auto rightImgRB = this->imgMono[i + 1];
+        auto rightImgRC = this->imgMono[i + 1];
+
+        //naive iteration, assuming all images are the same size
         for (int y = 0; y < leftImg.height(); ++y) {
+
+            //Convert uchar* to QRbg*
             QRgb* leftLine = reinterpret_cast<QRgb*>(leftImg.scanLine(y));
-            QRgb* rightLine = reinterpret_cast<QRgb*>(rightImg.scanLine(y));
+
+            QRgb* rightLineRB = reinterpret_cast<QRgb*>(rightImgRB.scanLine(y));
+            QRgb* rightLineRC = reinterpret_cast<QRgb*>(rightImgRC.scanLine(y));
 
             for (int x = 0; x < leftImg.width(); ++x) {
                 QRgb& leftPixel = leftLine[x];
                 //Keep red component
-                leftPixel = qRgba(qRed(rgb), qGreen(0), qBlue(0), qAlpha(rgb));
+                leftPixel = qRgba(qRed(leftPixel), qGreen(0), qBlue(0), qAlpha(leftPixel));
 
-                QRgb& rightPixel = rightLine[x];
-                //Keep green/blue component
-                rightPixel = qRgba(qRed(0), qGreen(rgb), qBlue(rgb), qAlpha(rgb));
+                QRgb& rightPixelRB = rightLineRB[x];
+                //Keep blue component
+                rightPixelRB = qRgba(qRed(0), qGreen(0), qBlue(rightPixelRB), qAlpha(rightPixelRB));
+
+                QRgb& rightPixelRC = rightLineRC[x];
+                //Keep cyan component
+                rightPixelRC = qRgba(qRed(0), qGreen(rightPixelRC), qBlue(rightPixelRB), qAlpha(rightPixelRB));
             }
         }
 
+        this->imgAnagRB.push_back(leftImg);
+        this->imgAnagRB.push_back(rightImgRB);
+
         this->imgAnagRC.push_back(leftImg);
-        this->imgAnagRC.push_back(rightImg);
+        this->imgAnagRC.push_back(rightImgRC);
     }
     
 }
