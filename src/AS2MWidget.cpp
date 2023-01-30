@@ -154,8 +154,8 @@ void AS2MWidget::paintMono() const
 void AS2MWidget::paintStereo() const
 {
 /// --- TODO : Dessin du couple de vues stéréoscopiques
-    auto& leftImg = this->imgMono[this->numView];
-    auto& rightImg = this->imgMono[this->numView + 1];
+    auto& leftImg = this->imgMono[this->numView + this->swapEyes];
+    auto& rightImg = this->imgMono[this->numView - this->swapEyes + 1];
 
     glDrawBuffer(GL_BACK_RIGHT);
     this->paintImage(rightImg);
@@ -225,14 +225,8 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
         /// --- TODO : échange de l'affichage des images gauche-droite
         case Qt::Key_S: {
-            auto& leftImg = this->imgMono[this->numView + 1];
-            auto& rightImg = this->imgMono[this->numView];
-
-            glDrawBuffer(GL_BACK_RIGHT);
-            this->paintImage(rightImg);
-
-            glDrawBuffer(GL_BACK_LEFT);
-            this->paintImage(leftImg);
+            this->swapEyes = true;
+            this->paintStereo();
 
             updateGL();
             break;
