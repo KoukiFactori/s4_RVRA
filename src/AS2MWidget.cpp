@@ -23,10 +23,13 @@ AS2MWidget::AS2MWidget(const QString & basename, int tv, int numView, QWidget *p
     {
         // on modifie le titre de la fenêtre
         this->setWindowTitle("AS2MWidget : séquence d'images " + this->basename);
+
         // on ajuste la taille de la fenêtre : à activer après codage du chargement des images
-        // this->resize(this->imgMono[0].size());
+        this->resize(this->imgMono[0].size());
+
         // on calcule les images anaglyphes
         this->fillAnag();
+
         // on calcule l'image multistéréo (si demandé car modification de la taille nécessaire)
         if (this->typeView==MULTI) this->fillMult();
     }
