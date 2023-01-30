@@ -81,7 +81,7 @@ bool AS2MWidget::fillMono()
 {
 /// --- TODO : Chargement des images mono
 
-    return true;
+    return this->fillVector(this->basename, this->imgMono);
 }
 
 // calcul des anaglyphes
