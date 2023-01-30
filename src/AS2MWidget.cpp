@@ -1,4 +1,4 @@
-﻿#include "AS2MWidget.h"
+#include "AS2MWidget.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QKeyEvent>
@@ -200,7 +200,18 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
 
         /// --- TODO : échange de l'affichage des images gauche-droite
+        case Qt::Key_S:
+            auto& leftImg = this->imgMono[this->numView + 1];
+            auto& rightImg = this->imgMono[this->numView];
 
+            glDrawBuffer(GL_BACK_RIGHT);
+            this->paintImage(rightImg);
+
+            glDrawBuffer(GL_BACK_LEFT);
+            this->paintImage(leftImg);
+
+            updateGL();
+            break;
 
         /// --- TODO : sauvegarde des images anaglyphes et de l'image composite multiscopique
 
