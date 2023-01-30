@@ -238,6 +238,8 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
         /// --- TODO : Changement du couple de vues visualisé,
         ///             décalage vers la droite et décalage vers la gauche
         case Qt::RightArrow:
+            if (this->numView == this->nbImages - 1) break;
+
             this->numView += 1;
             this->paintStereo();
 
@@ -245,6 +247,8 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
             break;
 
         case Qt::LeftArrow:
+            if (this->numView == 0) break;
+
             this->numView -= 1;
             this->paintStereo();
 
