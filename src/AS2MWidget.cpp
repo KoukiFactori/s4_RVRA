@@ -130,7 +130,14 @@ void AS2MWidget::paintMono() const
 void AS2MWidget::paintStereo() const
 {
 /// --- TODO : Dessin du couple de vues stéréoscopiques
+    auto& leftImg = this->imgMono[this->numView];
+    auto& rightImg = this->imgMono[this->numView + 1];
 
+    glDrawBuffer(GL_BACK_RIGHT);
+    this->paintImage(rightImg);
+
+    glDrawBuffer(GL_BACK_LEFT);
+    this->paintImage(leftImg);
 }
 
 void AS2MWidget::paintAnagRB() const
