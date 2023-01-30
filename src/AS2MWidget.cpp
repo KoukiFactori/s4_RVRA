@@ -224,7 +224,7 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
 
         /// --- TODO : échange de l'affichage des images gauche-droite
-        case Qt::Key_S:
+        case Qt::Key_S: {
             auto& leftImg = this->imgMono[this->numView + 1];
             auto& rightImg = this->imgMono[this->numView];
 
@@ -236,11 +236,25 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
             updateGL();
             break;
+        }
 
         /// --- TODO : sauvegarde des images anaglyphes et de l'image composite multiscopique
 
 
         /// --- TODO : Changement du couple de vues visualisé,
         ///             décalage vers la droite et décalage vers la gauche
+        case Qt::RightArrow:
+            this->numView += 1;
+            this->paintStereo();
+
+            updateGL();
+            break;
+
+        case Qt::LeftArrow:
+            this->numView -= 1;
+            this->paintStereo();
+
+            updateGL();
+            break;
     }
 }
