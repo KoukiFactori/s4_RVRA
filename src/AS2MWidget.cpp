@@ -168,8 +168,16 @@ void AS2MWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
 /// --- TODO - Dessin avec le type de rendu désiré
 
-    if (this->numView == TypeView::MONO) paintMono();
+    switch (this->numView)
+    {
+        case TypeView::MONO:
+            this->paintMono();
+            break;
 
+        case TypeView::STEREO:
+            this->paintStereo();
+            break;
+    }
 }
 
 void AS2MWidget::keyPressEvent(QKeyEvent *event)
