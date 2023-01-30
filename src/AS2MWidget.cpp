@@ -91,7 +91,31 @@ bool AS2MWidget::fillMono()
 void AS2MWidget::fillAnag()
 {
 /// --- TODO : Calculs des images anaglyphes
+    for (size_t i = 0; i < this->nbImages; i++)
+    {
+        auto leftImg = this->imgMono[i];
+        auto rightImg = this->imgMono[i + 1];
 
+        //naive iteration
+        for (int y = 0; y < leftImg.height(); ++y) {
+            QRgb* leftLine = reinterpret_cast<QRgb*>(leftImg.scanLine(y));
+            QRgb* rightLine = reinterpret_cast<QRgb*>(rightImg.scanLine(y));
+
+            for (int x = 0; x < leftImg.width(); ++x) {
+                QRgb& leftPixel = leftLine[x];
+                //Keep red component
+                leftPixel = qRgba(qRed(rgb), qGreen(0), qBlue(0), qAlpha(rgb));
+
+                QRgb& rightPixel = rightLine[x];
+                //Keep green/blue component
+                rightPixel = qRgba(qRed(0), qGreen(rgb), qBlue(rgb), qAlpha(rgb));
+            }
+        }
+
+        this->imgAnagRC.push_back(leftImg);
+        this->imgAnagRC.push_back(rightImg);
+    }
+    
 }
 
 void AS2MWidget::saveAnag() const
