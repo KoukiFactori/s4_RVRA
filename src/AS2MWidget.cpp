@@ -91,6 +91,8 @@ bool AS2MWidget::fillMono()
 void AS2MWidget::fillAnag()
 {
 /// --- TODO : Calculs des images anaglyphes
+
+    // --- TODO : Try to rewrite and replace QRgb by QColor
     for (size_t i = 0; i < this->nbImages - 1; i++)
     {
         auto leftImg = this->imgMono[i];
@@ -114,7 +116,7 @@ void AS2MWidget::fillAnag()
 
                 QRgb& rightPixelRB = rightLineRB[x];
                 //Keep blue component
-                rightPixelRB = qRgba(qRed(0), qGreen(0), qBlue(rightPixelRB), qAlpha(rightPixelRB));
+                rightPixelRB = qRgba(qRed(0), (qGreen(leftPixel) + qGreen(rightPixelRB)) / 2, qBlue(rightPixelRB), qAlpha(rightPixelRB));
 
                 QRgb& rightPixelRC = rightLineRC[x];
                 //Keep cyan component
