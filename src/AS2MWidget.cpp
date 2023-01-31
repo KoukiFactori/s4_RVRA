@@ -5,6 +5,8 @@
 #include <QtDebug>
 #include <QDir>
 
+#include <iostream>
+
 const int     AS2MWidget::nbImages  = 8;
 const QSize   AS2MWidget::sizeMulti = QSize(1920,1080);
 
@@ -22,7 +24,7 @@ AS2MWidget::AS2MWidget(const QString & basename, int tv, int numView, QWidget *p
     if (this->fillMask() && this->fillMono())
     {
         // on modifie le titre de la fenêtre
-        this->setWindowTitle("AS2MWidget : séquence d'images " + this->basename);
+        this->setWindowTitle("AS2MWidget - Render mode: mono");
 
         // on ajuste la taille de la fenêtre : à activer après codage du chargement des images
         this->resize(this->imgMono[0].size());
@@ -97,8 +99,12 @@ void AS2MWidget::fillAnag()
     {
         auto leftImg = this->imgMono[i];
 
+        std::cout << "Left image: " << i << std::endl;
+
         auto rightImgRB = this->imgMono[i + 1];
         auto rightImgRC = this->imgMono[i + 1];
+
+        std::cout << "Right image: " << i + 1 << std::endl;
 
         //naive iteration, assuming all images are the same size
         for (int y = 0; y < leftImg.height(); ++y) {
@@ -126,6 +132,8 @@ void AS2MWidget::fillAnag()
 
         this->imgAnagRB.push_back(leftImg);
         this->imgAnagRB.push_back(rightImgRB);
+
+        std::cout << "Buffer size: " << this->imgAnagRB.size() << std::endl;
 
         this->imgAnagRC.push_back(leftImg);
         this->imgAnagRC.push_back(rightImgRC);
@@ -162,7 +170,7 @@ void AS2MWidget::paintImage(const QImage & img) const
 void AS2MWidget::paintMono() const
 {
 /// --- TODO : Dessin de l'image mono
-    auto& img = this->imgMono[0];
+    auto& img = this->imgMono[this->numView];
     this->paintImage(img);
 }
 
@@ -182,13 +190,27 @@ void AS2MWidget::paintStereo() const
 void AS2MWidget::paintAnagRB() const
 {
 /// --- TODO : Dessin du couple de vues en anaglyphe rouge-bleu
+    auto& leftImg = this->imgAnagRB[this->numView * 2 + this->swapEyes];
+    auto& rightImg = this->imgAnagRB[this->numView * 2 - this->swapEyes + 1];
 
+    glDrawBuffer(GL_BACK_LEFT);
+    this->paintImage(leftImg);
+
+    glDrawBuffer(GL_BACK_RIGHT);
+    this->paintImage(rightImg);
 }
 
 void AS2MWidget::paintAnagRC() const
 {
 /// --- TODO : Dessin du couple de vues en anaglyphe rouge-cyan
+    auto& leftImg = this->imgAnagRC[this->numView * 2 + this->swapEyes];
+    auto& rightImg = this->imgAnagRC[this->numView * 2 - this->swapEyes + 1];
 
+    glDrawBuffer(GL_BACK_LEFT);
+    this->paintImage(leftImg);
+
+    glDrawBuffer(GL_BACK_RIGHT);
+    this->paintImage(rightImg);
 }
 
 void AS2MWidget::paintMulti() const
@@ -215,35 +237,69 @@ void AS2MWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT);
 /// --- TODO - Dessin avec le type de rendu désiré
 
-    switch (this->typeView)
-    {
+    switch (this->typeView) {
         case TypeView::MONO:
             this->paintMono();
             break;
 
+        case TypeView::ANAG_RB:
+            this->paintAnagRB();
+            break;
+
+        case TypeView::ANAG_RC:
+            this->paintAnagRC();
+            break;
+
         case TypeView::STEREO:
             this->paintStereo();
+        break;
+
+        case MULTI:
             break;
     }
 }
 
 void AS2MWidget::keyPressEvent(QKeyEvent *event)
 {
+    bool needRender = true;
+
     switch ( event->key() )
     {
         case Qt::Key_Escape:
+            needRender = false;
             this->close();
             break;
 
         /// --- TODO : changement du mode de rendu
+        case Qt::Key_1:
+            this->typeView = TypeView::MONO;
+            this->setWindowTitle("AS2MWidget - Render mode: mono");
+            break;
 
+        case Qt::Key_2:
+            this->typeView = TypeView::ANAG_RB;
+            this->setWindowTitle("AS2MWidget - Render mode: anaglyphe rouge/bleu");
+            break;
+
+        case Qt::Key_3:
+            this->typeView = TypeView::ANAG_RC;
+            this->setWindowTitle("AS2MWidget - Render mode: anaglyphe rouge/cyan");
+            break;
+
+        case Qt::Key_4:
+            this->typeView = TypeView::STEREO;
+            this->setWindowTitle("AS2MWidget - Render mode: stéréoscopie active");
+            break;
+
+        case Qt::Key_5:
+            this->typeView = TypeView::MULTI;
+            this->setWindowTitle("AS2MWidget - Render mode: multimode | Non implémenté");
+            needRender = false;
+            break;
 
         /// --- TODO : échange de l'affichage des images gauche-droite
         case Qt::Key_S: {
-            this->swapEyes = true;
-            this->paintStereo();
-
-            updateGL();
+            this->swapEyes = !this->swapEyes;
             break;
         }
 
@@ -252,22 +308,23 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
         /// --- TODO : Changement du couple de vues visualisé,
         ///             décalage vers la droite et décalage vers la gauche
-        case Qt::RightArrow:
-            if (this->numView == this->nbImages - 1) break;
-
-            this->numView += 1;
-            this->paintStereo();
-
-            updateGL();
+        case Qt::Key_Right:
+            this->numView = (this->numView == (this->nbImages - 2) ? 0 : (this->numView + 1));
+            std::cout << "Couple: " << this->numView << std::endl;
             break;
 
-        case Qt::LeftArrow:
-            if (this->numView == 0) break;
-
-            this->numView -= 1;
-            this->paintStereo();
-
-            updateGL();
+        case Qt::Key_Left:
+            this->numView = (this->numView == 0 ? (this->nbImages - 2) : (this->numView - 1));
+            std::cout << "Couple: " << this->numView << std::endl;
             break;
+
+        default:
+            needRender = false;
+            break;
+    }
+
+    if (needRender) {
+        paintGL();
+        updateGL();
     }
 }
