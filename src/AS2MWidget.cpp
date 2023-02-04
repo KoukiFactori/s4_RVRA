@@ -6,6 +6,7 @@
 #include <QDir>
 
 #include <iostream>
+#include <sstream>
 
 const int     AS2MWidget::nbImages  = 8;
 const QSize   AS2MWidget::sizeMulti = QSize(1920,1080);
@@ -24,7 +25,7 @@ AS2MWidget::AS2MWidget(const QString & basename, int tv, int numView, QWidget *p
     if (this->fillMask() && this->fillMono())
     {
         // on modifie le titre de la fenêtre
-        this->setWindowTitle("AS2MWidget - Render mode: mono");
+        this->setWindowTitle("AS2MWidget - Visionneuse");
 
         // on ajuste la taille de la fenêtre : à activer après codage du chargement des images
         this->resize(this->imgMono[0].size());
@@ -97,54 +98,47 @@ void AS2MWidget::fillAnag()
     // --- TODO : Try to rewrite and replace QRgb by QColor
     for (size_t i = 0; i < this->nbImages - 1; i++)
     {
-        auto leftImg = this->imgMono[i];
-
+        auto& leftImg = this->imgMono[i];
         std::cout << "Left image: " << i << std::endl;
 
-        auto rightImgRB = this->imgMono[i + 1];
-        auto rightImgRC = this->imgMono[i + 1];
-
+        auto& rightImg = this->imgMono[i + 1];
         std::cout << "Right image: " << i + 1 << std::endl;
+
+        //New image
+        QImage resRB { leftImg };
+        QImage resRC { leftImg };
 
         //naive iteration, assuming all images are the same size
         for (int y = 0; y < leftImg.height(); ++y) {
-
-            //Convert uchar* to QRbg*
-            QRgb* leftLine = reinterpret_cast<QRgb*>(leftImg.scanLine(y));
-
-            QRgb* rightLineRB = reinterpret_cast<QRgb*>(rightImgRB.scanLine(y));
-            QRgb* rightLineRC = reinterpret_cast<QRgb*>(rightImgRC.scanLine(y));
-
             for (int x = 0; x < leftImg.width(); ++x) {
-                QRgb& leftPixel = leftLine[x];
-                //Keep red component
-                leftPixel = qRgba(qRed(leftPixel), qGreen(0), qBlue(0), qAlpha(leftPixel));
+                QRgb leftPixel = leftImg.pixel(x, y);
+                QRgb rightPixel = rightImg.pixel(x, y);
 
-                QRgb& rightPixelRB = rightLineRB[x];
-                //Keep blue component
-                rightPixelRB = qRgba(qRed(0), (qGreen(leftPixel) + qGreen(rightPixelRB)) / 2, qBlue(rightPixelRB), qAlpha(rightPixelRB));
-
-                QRgb& rightPixelRC = rightLineRC[x];
-                //Keep cyan component
-                rightPixelRC = qRgba(qRed(0), qGreen(rightPixelRC), qBlue(rightPixelRB), qAlpha(rightPixelRB));
+                resRB.setPixel(x, y, qRgb(qRed(leftPixel), (qGreen(leftPixel) + qGreen(rightPixel)) / 2, qBlue(rightPixel)));
+                resRC.setPixel(x, y, qRgb(qRed(leftPixel), qGreen(rightPixel), qBlue(rightPixel)));
             }
         }
 
-        this->imgAnagRB.push_back(leftImg);
-        this->imgAnagRB.push_back(rightImgRB);
-
-        std::cout << "Buffer size: " << this->imgAnagRB.size() << std::endl;
-
-        this->imgAnagRC.push_back(leftImg);
-        this->imgAnagRC.push_back(rightImgRC);
+        this->imgAnagRB.push_back(resRB);
+        this->imgAnagRC.push_back(resRC);
     }
-    
 }
 
 void AS2MWidget::saveAnag() const
 {
-/// --- TODO : Sauvegarde des images anaglyphes
+    /// --- TODO : Sauvegarde des images anaglyphes
+    for (int i = 0; i < this->nbImages - 1; ++i) {
+        std::string filenameRB = "./result/AnaRB_" + std::to_string(i) + ".png";
+        std::string filenameRC = "./result/AnaRC_" + std::to_string(i) + ".png";
 
+        std::cout << "Sauvegarde couple " << i << std::endl;
+
+        auto resRB = this->imgAnagRB[i].save(filenameRB.c_str(), "PNG", 50);
+        if (!resRB) std::cout << "Echec de l'enregistrement" << std::endl;
+
+        auto resRC = this->imgAnagRC[i].save(filenameRC.c_str(), "PNG", 50);
+        if (!resRC) std::cout << "Echec de l'enregistrement" << std::endl;
+    }
 }
 
 // calcul de l'image multiscopique
@@ -190,27 +184,15 @@ void AS2MWidget::paintStereo() const
 void AS2MWidget::paintAnagRB() const
 {
 /// --- TODO : Dessin du couple de vues en anaglyphe rouge-bleu
-    auto& leftImg = this->imgAnagRB[this->numView * 2 + this->swapEyes];
-    auto& rightImg = this->imgAnagRB[this->numView * 2 - this->swapEyes + 1];
-
-    glDrawBuffer(GL_BACK_LEFT);
-    this->paintImage(leftImg);
-
-    glDrawBuffer(GL_BACK_RIGHT);
-    this->paintImage(rightImg);
+    auto& img = this->imgAnagRB[this->numView];
+    this->paintImage(img);
 }
 
 void AS2MWidget::paintAnagRC() const
 {
 /// --- TODO : Dessin du couple de vues en anaglyphe rouge-cyan
-    auto& leftImg = this->imgAnagRC[this->numView * 2 + this->swapEyes];
-    auto& rightImg = this->imgAnagRC[this->numView * 2 - this->swapEyes + 1];
-
-    glDrawBuffer(GL_BACK_LEFT);
-    this->paintImage(leftImg);
-
-    glDrawBuffer(GL_BACK_RIGHT);
-    this->paintImage(rightImg);
+    auto& img = this->imgAnagRC[this->numView];
+    this->paintImage(img);
 }
 
 void AS2MWidget::paintMulti() const
@@ -304,7 +286,11 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
         }
 
         /// --- TODO : sauvegarde des images anaglyphes et de l'image composite multiscopique
-
+        case Qt::Key_L: {
+            this->saveAnag();
+            needRender = false;
+            break;
+        }
 
         /// --- TODO : Changement du couple de vues visualisé,
         ///             décalage vers la droite et décalage vers la gauche
