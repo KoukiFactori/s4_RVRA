@@ -96,7 +96,7 @@ void AS2MWidget::fillAnag()
 /// --- TODO : Calculs des images anaglyphes
 
     // --- TODO : Try to rewrite and replace QRgb by QColor
-    for (size_t i = 0; i < this->nbImages - 1; i++)
+    for (int i = 0; i < this->nbImages - 1; i++)
     {
         auto& leftImg = this->imgMono[i];
         std::cout << "Left image: " << i << std::endl;
@@ -127,16 +127,16 @@ void AS2MWidget::fillAnag()
 void AS2MWidget::saveAnag() const
 {
     /// --- TODO : Sauvegarde des images anaglyphes
-    for (int i = 0; i < this->nbImages - 1; ++i) {
+    for (int i = 0; i < this->nbImages; ++i) {
         std::string filenameRB = "./result/AnaRB_" + std::to_string(i) + ".png";
         std::string filenameRC = "./result/AnaRC_" + std::to_string(i) + ".png";
 
         std::cout << "Sauvegarde couple " << i << std::endl;
 
-        auto resRB = this->imgAnagRB[i].save(filenameRB.c_str(), "PNG", 50);
+        auto resRB = this->imgAnagRB[i].save(filenameRB.c_str(), "PNG");
         if (!resRB) std::cout << "Echec de l'enregistrement" << std::endl;
 
-        auto resRC = this->imgAnagRC[i].save(filenameRC.c_str(), "PNG", 50);
+        auto resRC = this->imgAnagRC[i].save(filenameRC.c_str(), "PNG");
         if (!resRC) std::cout << "Echec de l'enregistrement" << std::endl;
     }
 }
@@ -157,6 +157,7 @@ void AS2MWidget::saveMult() const
 // méthode d'affichage d'une QImage sous OpenGL
 void AS2MWidget::paintImage(const QImage & img) const
 {
+    std::cout << "Painting image..." << std::endl;
     QImage i(QGLWidget::convertToGLFormat(img));
     glDrawPixels(i.width(),i.height(),GL_RGBA,GL_UNSIGNED_BYTE,i.bits());
 }
@@ -164,6 +165,7 @@ void AS2MWidget::paintImage(const QImage & img) const
 void AS2MWidget::paintMono() const
 {
 /// --- TODO : Dessin de l'image mono
+    std::cout << "Paint mono" << std::endl;
     auto& img = this->imgMono[this->numView];
     this->paintImage(img);
 }
@@ -175,10 +177,14 @@ void AS2MWidget::paintStereo() const
     auto& rightImg = this->imgMono[this->numView - this->swapEyes + 1];
 
     glDrawBuffer(GL_BACK_RIGHT);
+    glClear(GL_COLOR_BUFFER_BIT);
     this->paintImage(rightImg);
 
     glDrawBuffer(GL_BACK_LEFT);
+    glClear(GL_COLOR_BUFFER_BIT);
     this->paintImage(leftImg);
+
+
 }
 
 void AS2MWidget::paintAnagRB() const
@@ -216,6 +222,7 @@ void AS2MWidget::resizeGL(int w, int h)
 
 void AS2MWidget::paintGL()
 {
+    glDrawBuffer(GL_BACK);
     glClear(GL_COLOR_BUFFER_BIT);
 /// --- TODO - Dessin avec le type de rendu désiré
 
@@ -243,12 +250,12 @@ void AS2MWidget::paintGL()
 
 void AS2MWidget::keyPressEvent(QKeyEvent *event)
 {
-    bool needRender = true;
+    std::cout << event->key() << std::endl;
 
     switch ( event->key() )
-    {
+    {    
+
         case Qt::Key_Escape:
-            needRender = false;
             this->close();
             break;
 
@@ -276,7 +283,6 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
         case Qt::Key_5:
             this->typeView = TypeView::MULTI;
             this->setWindowTitle("AS2MWidget - Render mode: multimode | Non implémenté");
-            needRender = false;
             break;
 
         /// --- TODO : échange de l'affichage des images gauche-droite
@@ -288,12 +294,14 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
         /// --- TODO : sauvegarde des images anaglyphes et de l'image composite multiscopique
         case Qt::Key_L: {
             this->saveAnag();
-            needRender = false;
             break;
         }
 
         /// --- TODO : Changement du couple de vues visualisé,
         ///             décalage vers la droite et décalage vers la gauche
+        ///
+        ///
+        /// TODO: Restrict only STEREO
         case Qt::Key_Right:
             this->numView = (this->numView == (this->nbImages - 2) ? 0 : (this->numView + 1));
             std::cout << "Couple: " << this->numView << std::endl;
@@ -303,14 +311,7 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
             this->numView = (this->numView == 0 ? (this->nbImages - 2) : (this->numView - 1));
             std::cout << "Couple: " << this->numView << std::endl;
             break;
-
-        default:
-            needRender = false;
-            break;
     }
 
-    if (needRender) {
-        paintGL();
-        updateGL();
-    }
+    updateGL();
 }
