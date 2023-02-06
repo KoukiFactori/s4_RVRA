@@ -42,6 +42,7 @@ Makefile*
 CMakeLists.txt.user*
 
 data
+result
 .qtc_clangd
 
 # End of https://www.gitignore.io/api/qt
