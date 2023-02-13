@@ -3,10 +3,11 @@
 #include <QMessageBox>
 #include <QKeyEvent>
 #include <QtDebug>
+#include <QtGlobal>
+#include <QString>
 #include <QDir>
 
 #include <iostream>
-#include <sstream>
 
 const int     AS2MWidget::nbImages  = 8;
 const QSize   AS2MWidget::sizeMulti = QSize(1920,1080);
@@ -127,7 +128,7 @@ void AS2MWidget::fillAnag()
 void AS2MWidget::saveAnag() const
 {
     /// --- TODO : Sauvegarde des images anaglyphes
-    for (int i = 0; i < this->nbImages; ++i) {
+    for (int i = 0; i < this->imgAnagRB.size(); ++i) {
         std::string filenameRB = "./result/AnaRB_" + std::to_string(i) + ".png";
         std::string filenameRC = "./result/AnaRC_" + std::to_string(i) + ".png";
 
@@ -144,20 +145,56 @@ void AS2MWidget::saveAnag() const
 // calcul de l'image multiscopique
 void AS2MWidget::fillMult()
 {
-/// --- TODO : Calcule l'image composite pour l'écran multiscopique
+    auto normalSize = this->imgMono[0].size();
 
+/// --- TODO : Calcule l'image composite pour l'écran multiscopique
+    QImage multiscopeImage { normalSize, QImage::Format_RGB32 };
+
+    for (int i = 0; i < this->imgMono.size(); i++)
+    {
+        QImage& img = this->imgMono[i];
+        QImage& filter = this->imgMask[i];
+
+        if (img.size() != normalSize) {
+            qDebug() << "Taille image invalide, skip";
+            return;
+        }
+
+        for (int y = 0; y < img.height(); ++y) {
+            for (int x = 0; x < img.width(); ++x) {
+                QColor imgPixel = img.pixel(x, y);
+                QColor filterPixel = filter.pixel(x, y);
+
+                QColor multiscopePixel = multiscopeImage.pixel(x, y);
+
+                qreal redChannel = qBound(0.0, multiscopePixel.redF() + imgPixel.redF() * filterPixel.redF(), 1.0);
+                multiscopePixel.setRedF(redChannel);
+
+                qreal greenChannel = qBound(0.0, multiscopePixel.greenF() + imgPixel.greenF() * filterPixel.greenF(), 1.0);
+                multiscopePixel.setGreenF(greenChannel);
+
+                qreal blueChannel = qBound(0.0, multiscopePixel.blueF() + imgPixel.blueF() * filterPixel.blueF(), 1.0);
+                multiscopePixel.setBlueF(blueChannel);
+
+                multiscopeImage.setPixelColor(x, y, multiscopePixel);
+            }
+        }
+    }
+
+    this->imgMult = multiscopeImage;
 }
 
 void AS2MWidget::saveMult() const
 {
-/// --- TODO : Sauvegarde de l'image composite
+    std::string filenameMult = "./result/Mossmann_Nicolas_mult.png";
 
+    auto resMult = this->imgMult.save(filenameMult.c_str(), "PNG");
+    if (!resMult) std::cout << "Echec de l'enregistrement" << std::endl;
 }
 
 // méthode d'affichage d'une QImage sous OpenGL
 void AS2MWidget::paintImage(const QImage & img) const
 {
-    std::cout << "Painting image..." << std::endl;
     QImage i(QGLWidget::convertToGLFormat(img));
     glDrawPixels(i.width(),i.height(),GL_RGBA,GL_UNSIGNED_BYTE,i.bits());
 }
@@ -165,7 +202,6 @@ void AS2MWidget::paintImage(const QImage & img) const
 void AS2MWidget::paintMono() const
 {
 /// --- TODO : Dessin de l'image mono
-    std::cout << "Paint mono" << std::endl;
     auto& img = this->imgMono[this->numView];
     this->paintImage(img);
 }
@@ -183,8 +219,6 @@ void AS2MWidget::paintStereo() const
     glDrawBuffer(GL_BACK_LEFT);
     glClear(GL_COLOR_BUFFER_BIT);
     this->paintImage(leftImg);
-
-
 }
 
 void AS2MWidget::paintAnagRB() const
@@ -204,7 +238,8 @@ void AS2MWidget::paintAnagRC() const
 void AS2MWidget::paintMulti() const
 {
 /// --- TODO : Dessin de l'image composite
-
+    auto& img = this->imgMult;
+    this->paintImage(img);
 }
 
 void AS2MWidget::initializeGL()
@@ -241,17 +276,16 @@ void AS2MWidget::paintGL()
 
         case TypeView::STEREO:
             this->paintStereo();
-        break;
+            break;
 
-        case MULTI:
+        case TypeView::MULTI:
+            this->paintMulti();
             break;
     }
 }
 
 void AS2MWidget::keyPressEvent(QKeyEvent *event)
 {
-    std::cout << event->key() << std::endl;
-
     switch ( event->key() )
     {    
 
@@ -282,12 +316,16 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
 
         case Qt::Key_5:
             this->typeView = TypeView::MULTI;
-            this->setWindowTitle("AS2MWidget - Render mode: multimode | Non implémenté");
+            this->setWindowTitle("AS2MWidget - Render mode: multiscopique");
             break;
 
         /// --- TODO : échange de l'affichage des images gauche-droite
         case Qt::Key_S: {
-            this->swapEyes = !this->swapEyes;
+            if ((event->modifiers() & Qt::ControlModifier) != 0) {
+                this->saveMult();
+            } else {
+                this->swapEyes = !this->swapEyes;
+            }
             break;
         }
 
@@ -304,12 +342,10 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
         /// TODO: Restrict only STEREO
         case Qt::Key_Right:
             this->numView = (this->numView == (this->nbImages - 2) ? 0 : (this->numView + 1));
-            std::cout << "Couple: " << this->numView << std::endl;
             break;
 
         case Qt::Key_Left:
             this->numView = (this->numView == 0 ? (this->nbImages - 2) : (this->numView - 1));
-            std::cout << "Couple: " << this->numView << std::endl;
             break;
     }
 
