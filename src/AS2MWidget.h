@@ -8,7 +8,7 @@ class AS2MWidget : public QGLWidget
 private:
     enum TypeView { MONO=1,                        // Liste des types de rendu possible
                     ANAG_RB, ANAG_RC,
-                    STEREO, MULTI };
+                    STEREO, MULTI, SIDE };
 
     const static int   nbImages;                   // Nombre de vues prises en charge
     const static QSize sizeMulti;                  // Taille des filtres pour le rendu multiscopique
@@ -19,6 +19,7 @@ private:
     int      numView;                              // Numéro du couple de vues sélectionné 0 => 1er couple (0,1)
     QString  basename;                             // nom de base des fichiers
     bool     swapEyes;                             // Indicateur de l'échange de l'image de gauche avec l'image de droite
+    bool     hSide;                                // Indicateur du sens pour le rendu sens by side (horizontal si true)
 
 /// Stockage des images
     QVector<QImage> imgMask;                       // Filtres pour la multiscopie
@@ -45,6 +46,7 @@ private:
     void paintAnagRC() const;                       /// TODO
     void paintMulti () const;                       /// TODO
     void paintStereo() const;                       /// TODO
+    void paintSide() const;
 
 protected:
     void keyPressEvent(QKeyEvent *event);           // Récupération et gestion des événements claviers

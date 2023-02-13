@@ -242,6 +242,37 @@ void AS2MWidget::paintMulti() const
     this->paintImage(img);
 }
 
+void AS2MWidget::paintSide() const
+{
+    auto windowSize = this->size();
+    auto paintImage = QImage { windowSize, QImage::Format_RGB32 };
+
+    auto& leftImg = this->imgMono[this->numView];
+    auto& rightImg = this->imgMono[this->numView];
+
+    QSize size { windowSize.height(), windowSize.width() / 2};
+
+    auto scaledLeft = leftImg.scaled(size, Qt::KeepAspectRatio);
+    auto scaledRight = rightImg.scaled(size, Qt::KeepAspectRatio);
+
+    int startHeight = (windowSize.height() - scaledLeft.height()) / 2;
+
+    //todo: paint scaled images to new image
+    for (int i = 0; i < scaledLeft.width(); i++) {
+        for (int j = 0; i < scaledLeft.height(); j++) {
+            paintImage.setPixel(i, startHeight + j, scaledLeft.pixel(i, j));
+        }
+    }
+
+    for (int i = 0; i < scaledRight.width(); i++) {
+        for (int j = 0; i < scaledRight.height(); j++) {
+            paintImage.setPixel(i + size.width(), startHeight + j, scaledRight.pixel(i, j));
+        }
+    }
+
+    this->paintImage(paintImage);
+}
+
 void AS2MWidget::initializeGL()
 {
 }
@@ -281,6 +312,10 @@ void AS2MWidget::paintGL()
         case TypeView::MULTI:
             this->paintMulti();
             break;
+
+        case TypeView::SIDE:
+            this->paintSide();
+            break;
     }
 }
 
@@ -319,6 +354,11 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
             this->setWindowTitle("AS2MWidget - Render mode: multiscopique");
             break;
 
+        case Qt::Key_6:
+            this->typeView = TypeView::SIDE;
+            this->setWindowTitle("AS2MWidget - Render mode: side by side");
+            break;
+
         /// --- TODO : échange de l'affichage des images gauche-droite
         case Qt::Key_S: {
             if ((event->modifiers() & Qt::ControlModifier) != 0) {
@@ -326,6 +366,11 @@ void AS2MWidget::keyPressEvent(QKeyEvent *event)
             } else {
                 this->swapEyes = !this->swapEyes;
             }
+            break;
+        }
+
+        case Qt::Key_M: {
+            this->hSide = !this->hSide;
             break;
         }
 
